@@ -8,6 +8,16 @@ import { makeBirds, makeSmoke, makeWalkers } from '../util.js';
 
 const ORDER = { sky: -40, far: -30, mid: -20, near: -10 };
 
+// float16 -> float32 (NaN marks empty samples)
+function halfToFloats(buf) {
+  const h = new Uint16Array(buf), out = new Float32Array(h.length);
+  for (let i = 0; i < h.length; i++) {
+    const v = h[i], s = v & 0x8000 ? -1 : 1, e = (v >> 10) & 31, f = v & 1023;
+    out[i] = e === 0 ? s * f * 5.960464477539063e-8 : e === 31 ? (f ? NaN : s * Infinity) : s * (1 + f / 1024) * 2 ** (e - 15);
+  }
+  return out;
+}
+
 function layerGeometry(pos, gw, gh, eye, isSky) {
   const n = gw * gh, vpos = new Float32Array(n * 3), uv = new Float32Array(n * 2), dist = new Float32Array(n), ok = new Uint8Array(n);
   for (let k = 0; k < n; k++) {
@@ -26,12 +36,12 @@ function layerGeometry(pos, gw, gh, eye, isSky) {
     if (!ok[p] || !ok[q] || !ok[r]) return false;
     if (isSky) return true;
     const lo = Math.min(dist[p], dist[q], dist[r]), hi = Math.max(dist[p], dist[q], dist[r]), ratio = hi / lo;
-    if (ratio < 1.04) return true;
-    if (ratio > 1.3) return false;
+    if (ratio < 1.2) return true;      // small steps (a baluster against the floor behind it) stay joined
+    if (ratio > 1.6) return false;
     a.fromArray(vpos, p * 3); b.fromArray(vpos, q * 3); c.fromArray(vpos, r * 3);
     nrm.subVectors(b, a).cross(c.clone().sub(a)).normalize();
     view.copy(a).add(b).add(c).multiplyScalar(1 / 3).sub(eye).normalize();
-    return Math.abs(nrm.dot(view)) > 0.12;
+    return Math.abs(nrm.dot(view)) > 0.08;
   };
   for (let j = 0; j < gh - 1; j++) for (let i = 0; i < gw - 1; i++) {
     const p = j * gw + i, q = p + 1, r = p + gw, s = r + 1;
@@ -64,7 +74,7 @@ export async function loadLayeredEra({ key, styleKey, base, title, date, blurb, 
       fetch(`${base}${L.geo}?v=${v}`).then(r => r.arrayBuffer()),
     ]);
     tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
-    const geo = layerGeometry(new Float32Array(buf), L.gw, L.gh, eye, L.name === 'sky');
+    const geo = layerGeometry(L.dtype === 'f16' ? halfToFloats(buf) : new Float32Array(buf), L.gw, L.gh, eye, L.name === 'sky');
     const mat = new THREE.MeshBasicMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide, fog: false });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.renderOrder = ORDER[L.name] ?? 0;

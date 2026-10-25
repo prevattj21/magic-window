@@ -32,7 +32,7 @@ ERA = arg('--era', 'rome')
 OUT = os.path.abspath(arg('--out', f'assets/eras/{ERA}'))
 RES = int(arg('--res', '2048'))          # equirect width in pixels
 SAMPLES = int(arg('--samples', '64'))
-GRID = int(arg('--grid', '256'))          # geometry samples across
+GRIDS = {'sky': 96, 'far': 320, 'mid': 448, 'near': 640}   # geometry samples across, per layer
 os.makedirs(OUT, exist_ok=True)
 T0 = time.time()
 def log(*a):
@@ -191,13 +191,46 @@ def srgb(h):
     c = [((h >> 16) & 255) / 255, ((h >> 8) & 255) / 255, (h & 255) / 255]
     return tuple((v / 12.92) if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in c)
 
-def mat_stone(name, c1, c2, rough=0.7, scale=1.5, bump_s=0.25):
+TEX = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tex')
+def photo(nt, slot, size):
+    """Box-projected CC0 photo texture in world space (size = metres per tile), or None."""
+    path = os.path.join(TEX, f'{slot}_diff.jpg')
+    if not os.path.exists(path): return None
+    geo = nt.nodes.new('ShaderNodeNewGeometry')
+    sc = nt.nodes.new('ShaderNodeVectorMath'); sc.operation = 'SCALE'; sc.inputs['Scale'].default_value = 1.0 / size
+    nt.links.new(geo.outputs['Position'], sc.inputs[0])
+    def tex(p, noncolor):
+        n = nt.nodes.new('ShaderNodeTexImage'); n.image = bpy.data.images.load(p, check_existing=True)
+        if noncolor: n.image.colorspace_settings.name = 'Non-Color'
+        n.projection = 'BOX'; n.projection_blend = 0.3
+        nt.links.new(sc.outputs[0], n.inputs['Vector'])
+        return n.outputs['Color']
+    rp = os.path.join(TEX, f'{slot}_rough.jpg')
+    col = tex(path, False)
+    bw = nt.nodes.new('ShaderNodeRGBToBW'); nt.links.new(col, bw.inputs[0])
+    return dict(color=col, lum=bw.outputs[0], rough=tex(rp, True) if os.path.exists(rp) else None)
+
+def apply_photo(nt, b, ph, tint=None, gain=1.8, bump_s=0.35):
+    """Photo detail: either its own colour, or its luminance applied to a tint colour."""
+    if tint is None: nt.links.new(ph['color'], b.inputs['Base Color'])
+    else: nt.links.new(scale_color(nt, tint, math_node(nt, 'MULTIPLY', ph['lum'], gain)), b.inputs['Base Color'])
+    if ph['rough'] is not None:
+        nt.links.new(ph['rough'], b.inputs['Roughness'])
+    nt.links.new(bump(nt, ph['lum'], bump_s, 0.02), b.inputs['Normal'])
+
+def mat_stone(name, c1, c2, rough=0.7, scale=1.5, bump_s=0.25, slot=None, size=2.5):
     m = bpy.data.materials.new(name); nt, b = _nodes(m)
     n = noise(nt, scale)
     b.inputs['Base Color'].default_value = (*srgb(c1), 1)
     nt.links.new(ramp(nt, n.outputs['Fac'], [(0.3, srgb(c1)), (0.7, srgb(c2))]), b.inputs['Base Color'])
     b.inputs['Roughness'].default_value = rough
-    nt.links.new(bump(nt, noise(nt, scale * 8, 8).outputs['Fac'], bump_s, 0.02), b.inputs['Normal'])
+    ph = photo(nt, slot, size) if slot else None
+    if ph:
+        tint = ramp(nt, n.outputs['Fac'], [(0.3, srgb(c1)), (0.7, srgb(c2))])
+        apply_photo(nt, b, ph, tint, 2.0)
+        b.inputs['Roughness'].default_value = rough
+    else:
+        nt.links.new(bump(nt, noise(nt, scale * 8, 8).outputs['Fac'], bump_s, 0.02), b.inputs['Normal'])
     return m
 
 def mat_column(name, c1, c2):
@@ -226,6 +259,10 @@ def mat_paving(name):
     nt.links.new(mul.outputs[0], b.inputs['Base Color'])
     b.inputs['Roughness'].default_value = 0.75
     nt.links.new(bump(nt, br.outputs['Fac'], 0.4, 0.03), b.inputs['Normal'])
+    ph = photo(nt, 'paving', 3.0)
+    if ph:
+        nt.links.new(scale_color(nt, ph['color'], 0.95), b.inputs['Base Color'])
+        nt.links.new(bump(nt, ph['lum'], 0.4, 0.02), b.inputs['Normal'])
     return m
 
 def mat_plaster(name, palette):
@@ -245,7 +282,9 @@ def mat_plaster(name, palette):
     inv = math_node(nt, 'MULTIPLY', math_node(nt, 'GREATER_THAN', v, 0.32), math_node(nt, 'LESS_THAN', v, 0.78))
     win = math_node(nt, 'MULTIPLY', inu, inv)
     shade = math_node(nt, 'SUBTRACT', 1.0, math_node(nt, 'MULTIPLY', win, 0.82))
-    nt.links.new(scale_color(nt, mul.outputs[0], shade), b.inputs['Base Color'])
+    ph = photo(nt, 'plaster', 2.0)
+    detail = math_node(nt, 'MULTIPLY', ph['lum'], 2.0) if ph else 1.0
+    nt.links.new(scale_color(nt, scale_color(nt, mul.outputs[0], shade), detail), b.inputs['Base Color'])
     b.inputs['Roughness'].default_value = 0.92
     nt.links.new(bump(nt, math_node(nt, 'ADD', noise(nt, 6, 8).outputs['Fac'], math_node(nt, 'MULTIPLY', win, -1.5)), 0.25, 0.05), b.inputs['Normal'])
     return m
@@ -260,6 +299,10 @@ def mat_tiles(name, c1, c2):
     nt.links.new(ramp(nt, noise(nt, 3).outputs['Fac'], [(0.3, srgb(c1)), (0.7, srgb(c2))]), b.inputs['Base Color'])
     b.inputs['Roughness'].default_value = 0.7
     nt.links.new(bump(nt, h, 0.5, 0.05), b.inputs['Normal'])
+    ph = photo(nt, 'roof', 2.0)
+    if ph:
+        nt.links.new(ph['color'], b.inputs['Base Color'])
+        nt.links.new(bump(nt, ph['lum'], 0.6, 0.04), b.inputs['Normal'])
     return m
 
 def mat_simple(name, c, rough=0.6, metal=0.0, bump_scale=0.0):
@@ -282,6 +325,10 @@ def mat_ground(name, c1, c2, scale=0.02):
     n = noise(nt, scale, 8, coords='Object')
     nt.links.new(ramp(nt, n.outputs['Fac'], [(0.3, srgb(c1)), (0.7, srgb(c2))]), b.inputs['Base Color'])
     b.inputs['Roughness'].default_value = 0.95
+    ph = photo(nt, 'ground', 6.0)
+    if ph:
+        tint = ramp(nt, n.outputs['Fac'], [(0.3, srgb(c1)), (0.7, srgb(c2))])
+        nt.links.new(scale_color(nt, tint, math_node(nt, 'MULTIPLY', ph['lum'], 2.0)), b.inputs['Base Color'])
     return m
 
 # ---------------------------------------------------------------- lighting & sky
@@ -342,10 +389,10 @@ def build_dome():
 # ---------------------------------------------------------------- ROME, 117 CE
 def build_rome():
     GY = -9.0
-    MARBLE = mat_stone('marble', 0xf2ece0, 0xe1d7c4, 0.38, 1.2, 0.12)
-    MARBLE2 = mat_stone('marble2', 0xe6dccb, 0xd2c5ad, 0.5, 1.0, 0.18)
+    MARBLE = mat_stone('marble', 0xf2ece0, 0xe1d7c4, 0.38, 1.2, 0.12, 'marble', 2.5)
+    MARBLE2 = mat_stone('marble2', 0xe6dccb, 0xd2c5ad, 0.5, 1.0, 0.18, 'marble', 3.0)
     COL = mat_column('column', 0xf3ede1, 0xe0d5c0)
-    TRAV = mat_stone('travertine', 0xd8cab0, 0xbfae8f, 0.8, 0.8, 0.35)
+    TRAV = mat_stone('travertine', 0xd8cab0, 0xbfae8f, 0.8, 0.8, 0.35, 'stone', 3.0)
     TERRA = mat_tiles('rooftiles', 0xa9502f, 0xc46a43)
     PLASTER = mat_plaster('plaster', [0xd9a868, 0xe6d3ad, 0xc98a5a, 0xeee2c8, 0xbf7a50, 0xd8b88a])
     PAVE = mat_paving('paving')
@@ -441,12 +488,12 @@ def build_rome():
     box(0, GY, -102, 2.4, 0.9, 1.6, MARBLE2)   # altar
     # Domed temple with portico
     PX, PZ = -95, -185
-    cyl(PX, GY, PZ, 21, 22, mat_stone('drum', 0xe0d3bb, 0xcbbd9f, 0.8, 0.5, 0.3), 'cyl')
+    cyl(PX, GY, PZ, 21, 22, mat_stone('drum', 0xe0d3bb, 0xcbbd9f, 0.8, 0.5, 0.3, 'stone', 3.0), 'cyl')
     dome(PX, GY + 22, PZ, 21, 15, 21, mat_stone('concrete', 0xb3a894, 0x9d927e, 0.85, 0.4, 0.3))
     temple(PX + 26, GY, PZ + 6, math.pi / 2, 22, 14, 14, 8)
     # Amphitheatre: tiers of piers around an elliptical ring
     AMX, AMZ, RX, RZ = 120, -235, 37.5, 30
-    AMP = mat_stone('amphi', 0xdccdae, 0xc5b491, 0.85, 0.5, 0.35)
+    AMP = mat_stone('amphi', 0xdccdae, 0xc5b491, 0.85, 0.5, 0.35, 'stone', 4.0)
     n = 64
     for t in range(4):
         y0, th = GY + t * 7.5, 7.5
@@ -461,7 +508,7 @@ def build_rome():
             box(px, y0 + th - 1.6, pz, 3.8, 1.6, 1.9, AMP, -a)
     cyl(AMX, GY, AMZ, 34, 28, AMP); ALL[-1].scale = (36, 28.5, 28)
     # Aqueduct
-    AQ = mat_stone('aqueduct', 0xc9b48f, 0xb09a76, 0.9, 0.3, 0.4)
+    AQ = mat_stone('aqueduct', 0xc9b48f, 0xb09a76, 0.9, 0.3, 0.4, 'stone', 4.0)
     for i in range(70):
         x = -500 + i * 14
         box(x, GY, -520 - i * 1.6, 3, 20, 4, AQ)
@@ -602,7 +649,7 @@ def postprocess(name):
     ppath = os.path.join(d, next(f for f in files if f.startswith('pos_')))
     col = load_pixels(cpath, False); pos = load_pixels(ppath, True)
     h, w = col.shape[:2]
-    gw = GRID; gh = int(round(GRID * h / w))
+    gw = GRIDS.get(name, 320); gh = int(round(gw * h / w))
     ys = np.linspace(0, h - 1, gh).round().astype(int); xs = np.linspace(0, w - 1, gw).round().astype(int)
     # sample the alpha-weighted nearest valid pixel in a small window around each grid point
     alpha = col[..., 3]
@@ -628,18 +675,18 @@ def postprocess(name):
             acc += sf * sv[..., None]; cnt += sv
         m = (~v) & (cnt > 0)
         filled[m] = acc[m] / cnt[m][:, None]
-    filled.astype('<f4').tofile(os.path.join(OUT, f'{name}.bin'))
+    filled.astype('<f2').tofile(os.path.join(OUT, f'{name}.bin'))   # float16 keeps files small
     # colour -> webp
     # re-encode with an identity view transform so the colours aren't graded twice
     img = bpy.data.images.load(cpath)
     vt = scene.view_settings.view_transform; scene.view_settings.view_transform = 'Standard'
     st = scene.render.image_settings
-    st.file_format = 'WEBP'; st.color_mode = 'RGBA'; st.quality = 86
+    st.file_format = 'WEBP'; st.color_mode = 'RGBA'; st.quality = 90
     img.save_render(os.path.join(OUT, f'{name}.webp'), scene=scene)
     scene.view_settings.view_transform = vt
     bpy.data.images.remove(img)
     log('wrote', name, f'{gw}x{gh}', 'valid', int(valid.sum()))
-    return dict(name=name, color=f'{name}.webp', geo=f'{name}.bin', gw=gw, gh=gh)
+    return dict(name=name, color=f'{name}.webp', geo=f'{name}.bin', gw=gw, gh=gh, dtype='f16')
 
 layers_out = []
 for name in ['sky'] + [n for n, _, _ in LAYERS][::-1]:
@@ -647,7 +694,8 @@ for name in ['sky'] + [n for n, _, _ in LAYERS][::-1]:
     render_layer(name)
     layers_out.append(postprocess(name))
 
-manifest = dict(era=ERA, eye=list(EYE_APP), lon=LON, lat=LAT, res=[RES, H], samples=SAMPLES,
+texinfo = json.load(open(os.path.join(TEX, 'textures.json'))) if os.path.exists(os.path.join(TEX, 'textures.json')) else {}
+manifest = dict(textures=texinfo, era=ERA, eye=list(EYE_APP), lon=LON, lat=LAT, res=[RES, H], samples=SAMPLES,
                 layers=layers_out, overlays=meta.get('overlays', {}), rendered=time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime()))
 with open(os.path.join(OUT, 'manifest.json'), 'w') as f: json.dump(manifest, f, indent=1)
 import shutil; shutil.rmtree(TMP, ignore_errors=True)

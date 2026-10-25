@@ -35,6 +35,8 @@ jobs:
           curl -sSL -o blender.tar.xz https://download.blender.org/release/Blender4.2/$BLENDER.tar.xz
           tar xf blender.tar.xz
           ./$BLENDER/blender --version | head -1
+      - name: Fetch CC0 textures (Poly Haven)
+        run: python3 tools/blender/fetch_textures.py 2k
       - name: Render
         run: |
           set -o pipefail
