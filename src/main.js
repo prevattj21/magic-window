@@ -6,7 +6,7 @@
 // wall and drawn only where the stencil matches, so moving the camera gives
 // true window parallax for free.
 import * as THREE from 'three';
-import { STYLES, makeMask, makeFrame, outline } from './frames.js';
+import { STYLES, makeMask, makeFrame, outline, makeOccluder } from './frames.js';
 import { createRome } from './eras/rome.js';
 import { createConstantinople } from './eras/constantinople.js';
 import { createNewYork } from './eras/newyork.js';
@@ -42,6 +42,12 @@ const roomScene = new THREE.Scene();
 roomScene.add(new THREE.HemisphereLight(0xfff6e8, 0x8a7a68, 1.4));
 const keyLight = new THREE.DirectionalLight(0xfff0dc, 1.4); keyLight.position.set(1, 3, 2); roomScene.add(keyLight);
 const portalsGroup = new THREE.Group(); roomScene.add(portalsGroup);
+// Depth-only "wall with a hole" per portal. Used to cut the window opening when
+// the stencil buffer isn't available (the AR camera view on many Android phones).
+const occScene = new THREE.Scene();
+// How the openings are cut: 'stencil' (preview default) or 'depth' (AR default). ?mask= overrides.
+const MASK_OVERRIDE = params.get('mask');
+const maskModeFor = m => MASK_OVERRIDE === 'depth' || MASK_OVERRIDE === 'stencil' ? MASK_OVERRIDE : (m === 'ar' ? 'depth' : 'stencil');
 
 // ---------- preview gallery (simulated walls) ----------
 const ROOM = { x: 1.8, zBack: 2.8, zEnd: -6.5, h: 3.1 };
@@ -103,6 +109,7 @@ function prepareEra(era) {
     }
   });
   era.setRef = ref => { for (const m of mats) m.stencilRef = ref; };
+  era.useStencil = on => { if (era._st === on) return; era._st = on; for (const m of mats) m.stencilWrite = on; };
   era.scene.matrixWorldAutoUpdate = true;
   return era;
 }
@@ -119,7 +126,8 @@ function addPortal(eraKey, matrix, { animate = true, toast = true } = {}) {
   visual.add(makeMask(STYLES[eraKey], ref));
   visual.add(makeFrame(eraKey));
   anchor.add(visual); portalsGroup.add(anchor);
-  const p = { era: eraKey, ref, anchor, visual, born: animate ? clock.elapsedTime : -10 };
+  const occ = makeOccluder(STYLES[eraKey]); occ.matrixAutoUpdate = false; occ.matrix.copy(matrix); occScene.add(occ);
+  const p = { era: eraKey, ref, anchor, visual, occ, born: animate ? clock.elapsedTime : -10 };
   portals.push(p);
   visual.traverse(o => { o.userData.portal = p; });
   anchor.updateMatrixWorld(true);
@@ -128,7 +136,7 @@ function addPortal(eraKey, matrix, { animate = true, toast = true } = {}) {
   return p;
 }
 function removePortal(p) {
-  portalsGroup.remove(p.anchor);
+  portalsGroup.remove(p.anchor); occScene.remove(p.occ); p.occ.geometry.dispose();
   p.anchor.traverse(o => { if (o.geometry) o.geometry.dispose(); });
   portals.splice(portals.indexOf(p), 1);
   nextRefs.unshift(p.ref);
@@ -351,6 +359,8 @@ function updateAR(frame) {
 const clock = new THREE.Clock();
 const frustum = new THREE.Frustum(), projView = new THREE.Matrix4(), sphere = new THREE.Sphere(), tmpV = new THREE.Vector3(), camWorld = new THREE.Vector3();
 let fpsEl = params.has('fps') ? $('#fps') : null, fpsAcc = 0, fpsN = 0;
+const debugEl = params.has('debug') ? $('#debug') : null; let debugN = 0;
+if (debugEl) debugEl.hidden = false;
 if (fpsEl) fpsEl.hidden = false;
 
 function portalVisible(p, cam) {
@@ -373,18 +383,44 @@ function render(time, frame) {
   const used = new Set(portals.map(p => p.era));
   for (const k of used) eras[k].update(t, dt);
 
+  const maskMode = maskModeFor(mode);
   renderer.autoClear = true;
   renderer.render(roomScene, camera);
   renderer.autoClear = false;
 
   const cam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
   projView.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); frustum.setFromProjectionMatrix(projView);
+  let drawn = 0;
   for (const p of portals) {
-    if (!portalVisible(p, cam)) continue;
+    if (!renderer.xr.isPresenting && !portalVisible(p, cam)) continue;
     const era = eras[p.era];
     era.root.matrix.copy(p.anchor.matrixWorld); era.root.matrixWorldNeedsUpdate = true;
-    era.setRef(p.ref);
+    if (maskMode === 'stencil') { era.useStencil(true); era.setRef(p.ref); }
+    else {
+      // depth cut-out: fresh depth, then this portal's wall-with-a-hole, then its scene
+      era.useStencil(false);
+      renderer.clearDepth();
+      for (const o of occScene.children) o.visible = o === p.occ;
+      renderer.render(occScene, camera);
+    }
     renderer.render(era.scene, camera);
+    drawn++;
+  }
+  if (maskMode === 'depth' && drawn) {
+    // frames, curtains and the reticle go back on top of the scenes
+    renderer.clearDepth();
+    const roomWas = room.visible; room.visible = false;
+    renderer.render(roomScene, camera);
+    room.visible = roomWas;
+  }
+  if (debugEl) {
+    debugN++;
+    if (debugN % 30 === 0) {
+      const gl = renderer.getContext(); let bits = '?';
+      try { bits = gl.getParameter(gl.STENCIL_BITS); } catch {}
+      const attrs = gl.getContextAttributes();
+      debugEl.textContent = `mode ${mode} · mask ${maskMode} · portals ${portals.length} drawn ${drawn} · stencil bits ${bits} · ctx stencil ${attrs.stencil} · xr ${renderer.xr.isPresenting}`;
+    }
   }
   if (fpsEl) { fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { fpsEl.textContent = Math.round(fpsN / fpsAcc) + ' fps'; fpsAcc = fpsN = 0; } }
 }

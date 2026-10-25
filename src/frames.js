@@ -39,6 +39,18 @@ export function makeMask(style, ref) {
   return m;
 }
 
+// Depth-only wall with the window opening cut out. Rendered just before a portal's
+// scene so the scene can only be seen through the hole. Needs no stencil buffer.
+export function makeOccluder(style) {
+  const S = 2500, s = new THREE.Shape();
+  s.moveTo(-S, -S); s.lineTo(S, -S); s.lineTo(S, S); s.lineTo(-S, S); s.lineTo(-S, -S);
+  s.holes.push(openingShape(style));
+  const mat = new THREE.MeshBasicMaterial({ colorWrite: false, side: THREE.DoubleSide });
+  const m = new THREE.Mesh(new THREE.ShapeGeometry(s, 32).translate(0, 0, 0.003), mat); // just in front of the reveal
+  m.frustumCulled = false;
+  return m;
+}
+
 // Thick-wall "reveal" placed in the era scene just behind the wall plane, so the
 // edges of the opening have real depth when you look in at an angle.
 export function makeReveal(style, depth, color) {
