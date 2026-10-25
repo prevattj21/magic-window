@@ -320,12 +320,12 @@ def mat_foliage(name, c1, c2):
     nt.links.new(bump(nt, noise(nt, 18, 10).outputs['Fac'], 0.9, 0.3), b.inputs['Normal'])
     return m
 
-def mat_ground(name, c1, c2, scale=0.02):
+def mat_ground(name, c1, c2, scale=0.02, slot='ground', size=6.0):
     m = bpy.data.materials.new(name); nt, b = _nodes(m)
     n = noise(nt, scale, 8, coords='Object')
     nt.links.new(ramp(nt, n.outputs['Fac'], [(0.3, srgb(c1)), (0.7, srgb(c2))]), b.inputs['Base Color'])
     b.inputs['Roughness'].default_value = 0.95
-    ph = photo(nt, 'ground', 6.0)
+    ph = photo(nt, slot, size)
     if ph:
         tint = ramp(nt, n.outputs['Fac'], [(0.3, srgb(c1)), (0.7, srgb(c2))])
         nt.links.new(scale_color(nt, tint, math_node(nt, 'MULTIPLY', ph['lum'], 2.0)), b.inputs['Base Color'])
@@ -401,6 +401,7 @@ def build_rome():
     CYP = mat_foliage('cypress', 0x1f3420, 0x3a5a32)
     TRUNK = mat_simple('trunk', 0x5a4330, 0.9)
     GROUND = mat_ground('ground', 0x8b8a5c, 0xa79e74, 0.01)
+    STREET = mat_ground('street', 0x8a8478, 0x6f6a60, 0.05, 'cobble', 2.5)
     HILLS = mat_ground('hills', 0x6f7d48, 0x8f9a5c, 0.004)
     POT = mat_simple('pot', 0xa4553a, 0.8, 0.0, 20)
     CLOTH = mat_simple('cloth', 0x8e1a1a, 0.8)
@@ -451,7 +452,7 @@ def build_rome():
 
     # Ground: plaza (mid), surrounding ground (mid / far pieces)
     box(0, GY - 0.05, -62, 36, 0.05, 110, PAVE)
-    box(0, GY - 0.2, -79.5, 400, 0.15, 169, GROUND)      # z +5 .. -164 (reaches under our own building)
+    box(0, GY - 0.2, -79.5, 400, 0.15, 169, STREET)      # z +5 .. -164: paved streets around the forum
     box(0, GY, -6.15, 14, LY - 0.35 - GY, 0.3, PLASTER)  # our building's facade below the loggia
     box(0, GY - 0.25, -1400, 5000, 0.1, 2470, GROUND)     # beyond 164 m
     box(-1300, GY - 0.25, -84, 2200, 0.1, 160, GROUND); box(1300, GY - 0.25, -84, 2200, 0.1, 160, GROUND)

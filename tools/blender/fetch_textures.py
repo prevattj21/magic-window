@@ -19,7 +19,8 @@ SLOTS = {
     'plaster':  ['painted_plaster', 'plastered_wall', 'plaster', 'stucco', 'concrete_wall'],
     'paving':   ['stone_tiles', 'cobblestone_floor', 'paving_stones', 'floor_tiles', 'cobblestone'],
     'roof':     ['roof_tiles', 'clay_roof', 'roof'],
-    'ground':   ['dry_ground', 'brown_mud', 'forrest_ground', 'aerial_grass', 'grass'],
+    'ground':   ['aerial_grass', 'grass_path', 'forrest_ground', 'grass'],
+    'cobble':   ['cobblestone_floor', 'cobblestone', 'cobble', 'stone_tiles'],
     'foliage':  ['leaves', 'hedge', 'moss'],
 }
 
