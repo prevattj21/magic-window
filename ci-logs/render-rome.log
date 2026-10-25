@@ -1,0 +1,13 @@
+run: 40232931655  era=rome res=1024 samples=24  status=success
+[mw     0.1s] building rome
+Blender 4.2.3 LTS (hash 0e22e4fcea03 built 2024-10-14 23:31:34)
+Traceback (most recent call last):
+  File "/home/runner/work/magic-window/magic-window/tools/blender/render_era.py", line 503, in <module>
+    dome_ob = build_dome()
+              ^^^^^^^^^^^^
+  File "/home/runner/work/magic-window/magic-window/tools/blender/render_era.py", line 317, in build_dome
+    sk = sky_node(nt, True); nt.links.new(nrm.outputs[0], sk.inputs['Vector'])
+                                                          ~~~~~~~~~^^^^^^^^^^
+KeyError: 'bpy_prop_collection[key]: key "Vector" not found'
+
+Blender quit
