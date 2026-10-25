@@ -1,0 +1,54 @@
+name: Render era layers
+# Renders an era's pre-rendered depth layers with Blender (Cycles, CPU) and
+# commits them to assets/eras/<era>/. A push to tools/blender/ makes a quick
+# draft render; run it manually for full quality.
+on:
+  push:
+    branches: [main]
+    paths: ['tools/blender/**']
+  workflow_dispatch:
+    inputs:
+      era: { description: 'Era to render', default: 'rome' }
+      res: { description: 'Panorama width in pixels', default: '3072' }
+      samples: { description: 'Cycles samples per pixel', default: '128' }
+permissions:
+  contents: write
+concurrency:
+  group: render
+  cancel-in-progress: true
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      ERA: ${{ inputs.era || 'rome' }}
+      RES: ${{ inputs.res || '1024' }}
+      SAMPLES: ${{ inputs.samples || '24' }}
+      BLENDER: blender-4.2.3-linux-x64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libxkbcommon0 libsm6 libice6 libegl1 > /dev/null
+          curl -sSL -o blender.tar.xz https://download.blender.org/release/Blender4.2/$BLENDER.tar.xz
+          tar xf blender.tar.xz
+          ./$BLENDER/blender --version | head -1
+      - name: Render
+        run: |
+          set -o pipefail
+          mkdir -p ci-logs
+          ./$BLENDER/blender -b --factory-startup --python tools/blender/render_era.py -- \
+            --era "$ERA" --out "assets/eras/$ERA" --res "$RES" --samples "$SAMPLES" 2>&1 | tee ci-logs/render.log
+      - name: Commit layers and log
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          { echo "run: ${{ github.run_id }}  era=$ERA res=$RES samples=$SAMPLES  status=${{ job.status }}"; tail -n 400 ci-logs/render.log 2>/dev/null; } > "ci-logs/render-$ERA.log"
+          rm -f ci-logs/render.log
+          git config user.name "magic-window-render"
+          git config user.email "render@users.noreply.github.com"
+          git add "ci-logs/render-$ERA.log"
+          [ -f "assets/eras/$ERA/manifest.json" ] && git add "assets/eras/$ERA"
+          git commit -m "Render $ERA layers (${RES}px, ${SAMPLES} spp) [run ${{ github.run_id }}]" || exit 0
+          git pull --rebase -q && git push -q
