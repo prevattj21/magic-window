@@ -218,7 +218,7 @@ def mat_paving(name):
     sc = nt.nodes.new('ShaderNodeMapping'); sc.inputs['Scale'].default_value = (0.5, 0.5, 0.5)
     nt.links.new(tc.outputs['Object'], sc.inputs['Vector']); nt.links.new(sc.outputs[0], br.inputs['Vector'])
     br.inputs['Scale'].default_value = 1.0; br.inputs['Mortar Size'].default_value = 0.012
-    br.inputs['Color1'].default_value = (*srgb(0xd9ccb0), 1); br.inputs['Color2'].default_value = (*srgb(0xc4b494), 1)
+    br.inputs['Color1'].default_value = (*srgb(0xbfb196), 1); br.inputs['Color2'].default_value = (*srgb(0xa89a7e), 1)
     br.inputs['Mortar'].default_value = (*srgb(0x8f826a), 1)
     tint = ramp(nt, noise(nt, 0.08).outputs['Fac'], [(0.3, (0.82, 0.82, 0.82)), (0.7, (1.0, 1.0, 1.0))])
     mul = nt.nodes.new('ShaderNodeVectorMath'); mul.operation = 'MULTIPLY'
@@ -297,11 +297,11 @@ def sky_node(nt, disc):
 world = bpy.data.worlds.new('world'); scene.world = world; world.use_nodes = True
 wnt = world.node_tree; wnt.nodes.clear()
 wbg = wnt.nodes.new('ShaderNodeBackground'); wout = wnt.nodes.new('ShaderNodeOutputWorld')
-wnt.links.new(sky_node(wnt, False).outputs['Color'], wbg.inputs['Color']); wbg.inputs['Strength'].default_value = 0.32
+wnt.links.new(sky_node(wnt, False).outputs['Color'], wbg.inputs['Color']); wbg.inputs['Strength'].default_value = 0.4
 wnt.links.new(wbg.outputs['Background'], wout.inputs['Surface'])
 world.mist_settings.start = 40; world.mist_settings.depth = 1400; world.mist_settings.falloff = 'QUADRATIC'
 
-sun_data = bpy.data.lights.new('sun', 'SUN'); sun_data.energy = 4.2; sun_data.angle = math.radians(0.6)
+sun_data = bpy.data.lights.new('sun', 'SUN'); sun_data.energy = 3.4; sun_data.angle = math.radians(0.6)
 sun_data.color = (1.0, 0.93, 0.82)
 sun = bpy.data.objects.new('sun', sun_data); scene.collection.objects.link(sun)
 sun.rotation_euler = SUN_DIR.to_track_quat('Z', 'Y').to_euler()
@@ -318,7 +318,7 @@ def build_dome():
     # Nishita has no vector input; on an object it samples along the incoming ray,
     # which from the eye at the dome's centre is exactly the view direction.
     if 'Vector' in sk.inputs: nt.links.new(nrm.outputs[0], sk.inputs['Vector'])
-    e1 = nt.nodes.new('ShaderNodeEmission'); nt.links.new(sk.outputs['Color'], e1.inputs['Color']); e1.inputs['Strength'].default_value = 0.32
+    e1 = nt.nodes.new('ShaderNodeEmission'); nt.links.new(sk.outputs['Color'], e1.inputs['Color']); e1.inputs['Strength'].default_value = 0.4
     # soft cumulus: noise over the direction, only above the horizon
     n = nt.nodes.new('ShaderNodeTexNoise'); n.inputs['Scale'].default_value = 3.2; n.inputs['Detail'].default_value = 8; n.inputs['Roughness'].default_value = 0.6
     sq = nt.nodes.new('ShaderNodeVectorMath'); sq.operation = 'MULTIPLY'; sq.inputs[1].default_value = (1.0, 1.0, 3.0)
@@ -530,6 +530,7 @@ def set_pano(target):
     target.latitude_min, target.latitude_max = math.radians(LAT[0]), math.radians(LAT[1])
 try: set_pano(cam_data)
 except AttributeError: set_pano(cam_data.cycles)
+cam_data.clip_start, cam_data.clip_end = 0.05, 6000.0   # default clip_end (100 m) cut off the city and sky
 cam = bpy.data.objects.new('cam', cam_data); scene.collection.objects.link(cam)
 cam.location = EYE; cam.rotation_euler = (math.pi / 2, 0, 0)   # look along +Y (into the wall)
 scene.camera = cam
