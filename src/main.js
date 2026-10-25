@@ -34,6 +34,7 @@ const applyQuality = () => {
 };
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.xr.enabled = true;
+renderer.localClippingEnabled = true;
 renderer.setClearColor(0x000000, 0);
 $('#stage').appendChild(renderer.domElement);
 
@@ -100,11 +101,14 @@ function roomMat(opts) {
 const eras = {};
 function prepareEra(era) {
   const mats = [];
+  // Nothing from an era may draw on the viewer's side of the wall: clip at the window plane.
+  era.clipPlane = new THREE.Plane();
   era.scene.traverse(o => {
     if (!o.material) return;
     for (const m of [].concat(o.material)) {
       m.stencilWrite = true; m.stencilFunc = THREE.EqualStencilFunc; m.stencilRef = 1;
       m.stencilFail = m.stencilZFail = m.stencilZPass = THREE.KeepStencilOp;
+      m.clippingPlanes = [era.clipPlane];
       mats.push(m);
     }
   });
@@ -395,6 +399,8 @@ function render(time, frame) {
     if (!renderer.xr.isPresenting && !portalVisible(p, cam)) continue;
     const era = eras[p.era];
     era.root.matrix.copy(p.anchor.matrixWorld); era.root.matrixWorldNeedsUpdate = true;
+    tmpV.set(0, 0, -1).transformDirection(p.anchor.matrixWorld);
+    era.clipPlane.setFromNormalAndCoplanarPoint(tmpV, sphere.center.setFromMatrixPosition(p.anchor.matrixWorld));
     if (maskMode === 'stencil') { era.useStencil(true); era.setRef(p.ref); }
     else {
       // depth cut-out: fresh depth, then this portal's wall-with-a-hole, then its scene
