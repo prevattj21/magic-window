@@ -102,13 +102,14 @@ const eras = {};
 function prepareEra(era) {
   const mats = [];
   // Nothing from an era may draw on the viewer's side of the wall: clip at the window plane.
-  era.clipPlane = new THREE.Plane();
+  // plus four planes from the eye through the window's edges, so it only shows through the opening
+  era.clipPlanes = [0, 1, 2, 3, 4].map(() => new THREE.Plane());
   era.scene.traverse(o => {
     if (!o.material) return;
     for (const m of [].concat(o.material)) {
       m.stencilWrite = true; m.stencilFunc = THREE.EqualStencilFunc; m.stencilRef = 1;
       m.stencilFail = m.stencilZFail = m.stencilZPass = THREE.KeepStencilOp;
-      m.clippingPlanes = [era.clipPlane];
+      m.clippingPlanes = era.clipPlanes;
       mats.push(m);
     }
   });
@@ -375,6 +376,23 @@ function portalVisible(p, cam) {
   return tmpV.dot(camWorld.sub(sphere.center)) > -0.05;
 }
 
+// Clip planes for one portal: the wall plane, then one plane per edge of the
+// opening's bounding rectangle, each passing through the viewer's eye.
+const _eye = new THREE.Vector3(), _ctr = new THREE.Vector3(), _corners = [0, 1, 2, 3].map(() => new THREE.Vector3());
+function setPortalClip(era, p, cam) {
+  const m = p.anchor.matrixWorld, st = STYLES[p.era], hw = st.w / 2 + 0.03, hh = st.h / 2 + 0.03;
+  cam.getWorldPosition(_eye);
+  _corners[0].set(-hw, -hh, 0).applyMatrix4(m); _corners[1].set(hw, -hh, 0).applyMatrix4(m);
+  _corners[2].set(hw, hh, 0).applyMatrix4(m); _corners[3].set(-hw, hh, 0).applyMatrix4(m);
+  _ctr.set(0, 0, -1).applyMatrix4(m);                       // a point just behind the opening: always kept
+  const [wall, ...sides] = era.clipPlanes;
+  wall.setFromNormalAndCoplanarPoint(tmpV.set(0, 0, -1).transformDirection(m), sphere.center.setFromMatrixPosition(m));
+  sides.forEach((pl, i) => {
+    pl.setFromCoplanarPoints(_eye, _corners[i], _corners[(i + 1) % 4]);
+    if (pl.distanceToPoint(_ctr) < 0) pl.negate();
+  });
+}
+
 function render(time, frame) {
   const dt = Math.min(clock.getDelta(), 0.1), t = clock.elapsedTime;
   if (mode === 'preview') updatePreview(dt); else updateAR(frame);
@@ -399,8 +417,7 @@ function render(time, frame) {
     if (!renderer.xr.isPresenting && !portalVisible(p, cam)) continue;
     const era = eras[p.era];
     era.root.matrix.copy(p.anchor.matrixWorld); era.root.matrixWorldNeedsUpdate = true;
-    tmpV.set(0, 0, -1).transformDirection(p.anchor.matrixWorld);
-    era.clipPlane.setFromNormalAndCoplanarPoint(tmpV, sphere.center.setFromMatrixPosition(p.anchor.matrixWorld));
+    setPortalClip(era, p, cam);
     if (maskMode === 'stencil') { era.useStencil(true); era.setRef(p.ref); }
     else {
       // depth cut-out: fresh depth, then this portal's wall-with-a-hole, then its scene
