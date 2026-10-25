@@ -1,0 +1,66 @@
+{
+ "era": "rome",
+ "eye": [
+  0.0,
+  0.05,
+  1.5
+ ],
+ "lon": [
+  -80.0,
+  80.0
+ ],
+ "lat": [
+  -62.0,
+  50.0
+ ],
+ "res": [
+  1024,
+  716
+ ],
+ "samples": 24,
+ "layers": [
+  {
+   "name": "sky",
+   "color": "sky.webp",
+   "geo": "sky.bin",
+   "gw": 256,
+   "gh": 179
+  },
+  {
+   "name": "far",
+   "color": "far.webp",
+   "geo": "far.bin",
+   "gw": 256,
+   "gh": 179
+  },
+  {
+   "name": "mid",
+   "color": "mid.webp",
+   "geo": "mid.bin",
+   "gw": 256,
+   "gh": 179
+  },
+  {
+   "name": "near",
+   "color": "near.webp",
+   "geo": "near.bin",
+   "gw": 256,
+   "gh": 179
+  }
+ ],
+ "overlays": {
+  "groundY": -9.0,
+  "plaza": [
+   -14,
+   14,
+   -110,
+   -14
+  ],
+  "altar": [
+   0,
+   -8.1,
+   -102
+  ]
+ },
+ "rendered": "2026-10-25 20:57 UTC"
+}
