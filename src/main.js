@@ -11,6 +11,7 @@ import { createRome } from './eras/rome.js';
 import { createConstantinople } from './eras/constantinople.js';
 import { createNewYork } from './eras/newyork.js';
 import { canvasTex, Builder, G, M } from './util.js';
+import { loadLayeredEra } from './eras/layered.js';
 
 const $ = s => document.querySelector(s);
 const ERA_ORDER = ['rome', 'byz', 'ny'];
@@ -117,6 +118,23 @@ function prepareEra(era) {
   era.useStencil = on => { if (era._st === on) return; era._st = on; for (const m of mats) m.stencilWrite = on; };
   era.scene.matrixWorldAutoUpdate = true;
   return era;
+}
+
+// Realistic pre-rendered versions, used when their layers have been rendered.
+// ?scene=lowpoly forces the original low-poly scenes.
+const LAYERED = {
+  rome: { styleKey: 'rome', base: 'assets/eras/rome/', revealDepth: 0.45, revealColor: 0xe9dfcc,
+    title: 'Ancient Rome', date: '117 CE', blurb: 'The empire at its greatest extent under Trajan. Below the loggia, citizens cross the forum.' },
+};
+async function loadEra(k, status, name) {
+  const cfg = LAYERED[k];
+  if (cfg && params.get('scene') !== 'lowpoly') {
+    try {
+      status.textContent = `Loading ${name}…`;
+      return await loadLayeredEra({ key: k, ...cfg, onProgress: (i, n) => { status.textContent = `Loading ${name}… ${i}/${n}`; } });
+    } catch (err) { console.warn('Layered scene unavailable, using low-poly', k, err); }
+  }
+  return ERA_FACTORY[k]();
 }
 
 // ---------- portals ----------
@@ -464,7 +482,7 @@ async function boot() {
   for (const k of ERA_ORDER) {
     status.textContent = `Building ${names[k]}…`;
     await new Promise(r => setTimeout(r, 30));
-    eras[k] = prepareEra(ERA_FACTORY[k]());
+    eras[k] = prepareEra(await loadEra(k, status, names[k]));
   }
   // warm up shaders so the first frame doesn't stutter
   status.textContent = 'Opening windows…';
