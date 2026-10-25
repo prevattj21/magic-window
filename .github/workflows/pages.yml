@@ -23,6 +23,13 @@ jobs:
         run: |
           mkdir -p _site
           cp -r index.html sw.js manifest.webmanifest .nojekyll src icons _site/
+      - name: Stamp script URLs with this commit so phones never run stale code
+        run: |
+          V=${GITHUB_SHA::8}
+          sed -i "s#src/main.js#src/main.js?v=$V#" _site/index.html
+          find _site/src -name '*.js' -exec sed -i -E "s#(from '\.{1,2}/[^']+\.js)'#\1?v=$V'#g" {} +
+          sed -i "s#magic-window-v2#magic-window-$V#" _site/sw.js
+          grep -c "?v=$V" _site/index.html _site/src/main.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
