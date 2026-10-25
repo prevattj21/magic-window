@@ -60,6 +60,7 @@ export async function loadLayeredEra({ key, styleKey, base, title, date, blurb, 
   const man = await fetch(base + 'manifest.json', { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error('no layers'); return r.json(); });
   const v = encodeURIComponent(man.rendered || '');           // new render = new texture URLs
   const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0xdfe0e3, 25, 900);   // overlays pick up the render's aerial haze
   const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
   root.add(new THREE.HemisphereLight(0xfff1dc, 0x8a7458, 1.6));
   const sun = new THREE.DirectionalLight(0xffe2b8, 2.2); sun.position.set(60, 60, 40); root.add(sun);

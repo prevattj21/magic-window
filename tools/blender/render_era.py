@@ -260,8 +260,8 @@ def mat_paving(name):
     b.inputs['Roughness'].default_value = 0.75
     nt.links.new(bump(nt, br.outputs['Fac'], 0.4, 0.03), b.inputs['Normal'])
     ph = photo(nt, 'paving', 3.0)
-    if ph:
-        nt.links.new(scale_color(nt, ph['color'], 0.95), b.inputs['Base Color'])
+    if ph:   # photo detail, warm travertine tint
+        nt.links.new(scale_color(nt, mul.outputs[0], math_node(nt, 'MULTIPLY', ph['lum'], 2.2)), b.inputs['Base Color'])
         nt.links.new(bump(nt, ph['lum'], 0.4, 0.02), b.inputs['Normal'])
     return m
 
@@ -448,7 +448,9 @@ def build_rome():
     for i in range(-6, 7): box(i * 1.0, LY + 4.5, -2.5, 0.12, 0.1, 3, MARBLE)
     for (x, z) in ((-1.6, -3.7), (1.9, -3.8)):
         place('taper', POT, P(x, LY, z), (0.28, 0.28, 0.55))
-        blob(x, LY + 1.0, z, 0.45, 0.55, 0.45, FOL); blob(x + 0.12, LY + 1.35, z + 0.1, 0.3, 0.35, 0.3, FOL)
+        for k in range(9):   # a laurel built from many small leaf clumps
+            a = k * 2.4; rr = 0.18 + 0.12 * (k % 3)
+            blob(x + math.cos(a) * rr, LY + 0.75 + k * 0.07, z + math.sin(a) * rr, 0.2, 0.22, 0.2, FOL, a)
 
     # Ground: plaza (mid), surrounding ground (mid / far pieces)
     box(0, GY - 0.05, -62, 36, 0.05, 110, PAVE)
@@ -480,7 +482,7 @@ def build_rome():
     box(AX, GY + 8, AZ, 11, 3.2, 4, MARBLE2); box(AX, GY + 11.2, AZ, 11, 3.6, 4.2, MARBLE)
     for cx in (-5.3, -2.7, 2.7, 5.3): column(AX + cx, GY, AZ + 2.15, 0.3, 8)
     box(AX - 2, GY + 14.8, AZ, 2, 1, 1.6, BRONZE); box(AX + 2, GY + 14.8, AZ, 2, 1, 1.6, BRONZE)
-    for dx in (-3.4, 3.4): box(AX + dx, GY + 8.4, AZ + 2.25, 1.6, 6, 0.05, CLOTH)
+    for dx in (-3.4, 3.4): box(AX + dx, GY + 8.4, AZ + 2.75, 1.6, 6, 0.12, CLOTH)   # hung clear of the columns
     # Temples and basilica
     temple(0, GY, -128, 0, 26, 36, 15, 8)
     box(36, GY, -60, 20, 16, 70, PLASTER); box(36, GY + 16, -60, 12, 6, 70, PLASTER)
