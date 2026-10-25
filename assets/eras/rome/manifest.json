@@ -1,4 +1,69 @@
 {
+ "textures": {
+  "marble": {
+   "asset": "marble_01",
+   "name": "Marble 01",
+   "files": {
+    "diff": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_01/marble_01_diff_2k.jpg",
+    "rough": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_01/marble_01_rough_2k.jpg"
+   },
+   "license": "CC0 (polyhaven.com)"
+  },
+  "stone": {
+   "asset": "castle_wall_slates",
+   "name": "Castle Wall Slates",
+   "files": {
+    "diff": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/castle_wall_slates/castle_wall_slates_diff_2k.jpg",
+    "rough": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/castle_wall_slates/castle_wall_slates_rough_2k.jpg"
+   },
+   "license": "CC0 (polyhaven.com)"
+  },
+  "plaster": {
+   "asset": "painted_plaster_wall",
+   "name": "Painted Plaster Wall",
+   "files": {
+    "diff": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/painted_plaster_wall/painted_plaster_wall_diff_2k.jpg",
+    "rough": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/painted_plaster_wall/painted_plaster_wall_rough_2k.jpg"
+   },
+   "license": "CC0 (polyhaven.com)"
+  },
+  "paving": {
+   "asset": "stone_tiles",
+   "name": "Stone Tiles",
+   "files": {
+    "diff": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/stone_tiles/stone_tiles_diff_2k.jpg",
+    "rough": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/stone_tiles/stone_tiles_rough_2k.jpg"
+   },
+   "license": "CC0 (polyhaven.com)"
+  },
+  "roof": {
+   "asset": "roof_tiles",
+   "name": "Roof Tiles",
+   "files": {
+    "diff": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/roof_tiles/roof_tiles_diff_2k.jpg",
+    "rough": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/roof_tiles/roof_tiles_rough_2k.jpg"
+   },
+   "license": "CC0 (polyhaven.com)"
+  },
+  "ground": {
+   "asset": "dry_ground_01",
+   "name": "Dry Ground 01",
+   "files": {
+    "diff": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/dry_ground_01/dry_ground_01_diff_2k.jpg",
+    "rough": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/dry_ground_01/dry_ground_01_rough_2k.jpg"
+   },
+   "license": "CC0 (polyhaven.com)"
+  },
+  "foliage": {
+   "asset": "winter_leaves",
+   "name": "Winter Leaves",
+   "files": {
+    "diff": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/winter_leaves/winter_leaves_diff_2k.jpg",
+    "rough": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/winter_leaves/winter_leaves_rough_2k.jpg"
+   },
+   "license": "CC0 (polyhaven.com)"
+  }
+ },
  "era": "rome",
  "eye": [
   0.0,
@@ -23,29 +88,33 @@
    "name": "sky",
    "color": "sky.webp",
    "geo": "sky.bin",
-   "gw": 256,
-   "gh": 179
+   "gw": 96,
+   "gh": 67,
+   "dtype": "f16"
   },
   {
    "name": "far",
    "color": "far.webp",
    "geo": "far.bin",
-   "gw": 256,
-   "gh": 179
+   "gw": 320,
+   "gh": 224,
+   "dtype": "f16"
   },
   {
    "name": "mid",
    "color": "mid.webp",
    "geo": "mid.bin",
-   "gw": 256,
-   "gh": 179
+   "gw": 448,
+   "gh": 313,
+   "dtype": "f16"
   },
   {
    "name": "near",
    "color": "near.webp",
    "geo": "near.bin",
-   "gw": 256,
-   "gh": 179
+   "gw": 640,
+   "gh": 448,
+   "dtype": "f16"
   }
  ],
  "overlays": {
@@ -62,5 +131,5 @@
    -102
   ]
  },
- "rendered": "2026-10-25 21:05 UTC"
+ "rendered": "2026-10-25 21:11 UTC"
 }
