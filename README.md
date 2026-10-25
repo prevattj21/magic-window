@@ -1,6 +1,6 @@
 # Magic Window
 
-Hang windows on your walls and look into ancient Rome (117 CE), Constantinople (1200s) and New York (1920s). Each window behaves like a real one: step to the side and you see further around the edge.
+Peer into history! Hang windows on your walls and look into ancient Rome (117 CE), Constantinople (1200s) and New York (1920s).
 
 **Live app:** https://prevattj21.github.io/magic-window/ (open in Chrome on an ARCore phone and tap View in AR). Every push to `main` redeploys it through GitHub Actions.
 
