@@ -13,6 +13,7 @@ on:
       samples: { description: 'Cycles samples per pixel', default: '128' }
 permissions:
   contents: write
+  actions: write
 concurrency:
   group: render
   cancel-in-progress: true
@@ -52,3 +53,9 @@ jobs:
           [ -f "assets/eras/$ERA/manifest.json" ] && git add "assets/eras/$ERA"
           git commit -m "Render $ERA layers (${RES}px, ${SAMPLES} spp) [run ${{ github.run_id }}]" || exit 0
           git pull --rebase -q && git push -q
+      - name: Redeploy the site
+        # pushes made with the workflow token don't trigger other workflows, so start the deploy explicitly
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main

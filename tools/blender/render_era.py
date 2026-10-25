@@ -404,7 +404,8 @@ def build_rome():
 
     # Ground: plaza (mid), surrounding ground (mid / far pieces)
     box(0, GY - 0.05, -62, 36, 0.05, 110, PAVE)
-    box(0, GY - 0.2, -84, 400, 0.15, 160, GROUND)        # z -4 .. -164
+    box(0, GY - 0.2, -79.5, 400, 0.15, 169, GROUND)      # z +5 .. -164 (reaches under our own building)
+    box(0, GY, -6.15, 14, LY - 0.35 - GY, 0.3, PLASTER)  # our building's facade below the loggia
     box(0, GY - 0.25, -1400, 5000, 0.1, 2470, GROUND)     # beyond 164 m
     box(-1300, GY - 0.25, -84, 2200, 0.1, 160, GROUND); box(1300, GY - 0.25, -84, 2200, 0.1, 160, GROUND)
 
