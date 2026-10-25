@@ -1,0 +1,15 @@
+{
+  "name": "Magic Window",
+  "short_name": "Magic Window",
+  "description": "Place windows on your walls and look into ancient Rome, Constantinople and 1920s New York.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#14110d",
+  "theme_color": "#14110d",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
