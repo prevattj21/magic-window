@@ -2,7 +2,9 @@
 
 Hang windows on your walls and look into ancient Rome (117 CE), Constantinople (1200s) and New York (1920s). Each window behaves like a real one: step to the side and you see further around the edge.
 
-## Run it on your Android phone (AR mode)
+**Live app:** https://prevattj21.github.io/magic-window/ (open in Chrome on an ARCore phone and tap View in AR). Every push to `main` redeploys it through GitHub Actions.
+
+## Run your own copy (AR mode)
 
 WebXR only runs on a secure (HTTPS) address, so the folder has to be hosted first. Pick one route.
 
