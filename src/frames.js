@@ -46,7 +46,7 @@ export function makeOccluder(style) {
   // A small square with the opening cut out, ringed by four huge quads that share its
   // exact corners. One giant shape-with-hole triangulates into slivers that leave
   // hairline cracks; this layout has none.
-  const I = 2, S = 2500, inner = new THREE.Shape();
+  const I = 2, S = 60, inner = new THREE.Shape();
   inner.moveTo(-I, -I); inner.lineTo(I, -I); inner.lineTo(I, I); inner.lineTo(-I, I); inner.lineTo(-I, -I);
   inner.holes.push(openingShape(style));
   const quad = (x0, y0, x1, y1) => new THREE.BufferGeometry().setFromPoints([
