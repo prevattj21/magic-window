@@ -12,7 +12,7 @@ function hillHeight(x, z) {
   if (z > SHORE) return -6;
   const k = THREE.MathUtils.smoothstep(-z, -SHORE, -SHORE + 140);
   const bumps = 26 * Math.exp(-((x + 40) ** 2) / 9000) + 18 * Math.exp(-((x - 150) ** 2) / 7000) + 16 * Math.exp(-((x + 230) ** 2) / 8000) + 8 * Math.sin(x / 37) * Math.cos(z / 29);
-  return 2 + k * (22 + bumps);
+  return 2 + k * (10 + bumps * 0.6);
 }
 
 function shipMesh(kind, sail, seed) {
@@ -56,14 +56,15 @@ export function createConstantinople() {
   root.add(makeReveal(STYLES.byz, 0.9, 0xc2b08e));
 
   // ---- Tower top: walkway and crenellated parapet ----
-  const PY = -1.25;
-  b.box(0, PY - 0.4, -2.8, 12, 0.4, 4.2, STONE2);
-  b.box(0, PY, -4.6, 12, 0.85, 0.7, STONE);
-  for (let x = -5.6; x <= 5.6; x += 1.4) b.box(x, PY + 0.85, -4.6, 0.8, 0.75, 0.7, jitter(STONE, 0.3, r));
-  b.box(0, PY + 0.84, -4.6, 12, 0.05, 0.72, STONE2);
-  for (const sx of [-1, 1]) b.box(sx * 5.6, PY, -2.8, 0.7, 1.6, 4.2, STONE);
+  const PY = -3.0, PZ = -3.4;              // walkway level and parapet line, kept low so the harbour shows
+  b.box(0, PY - 0.4, (PZ - 0.9) / 2, 12, 0.4, -PZ + 0.1, STONE2);
+  b.box(0, PY, PZ, 12, 0.85, 0.7, STONE);
+  for (let x = -5.6; x <= 5.6; x += 1.4) b.box(x, PY + 0.85, PZ, 0.8, 0.75, 0.7, jitter(STONE, 0.3, r));
+  b.box(0, PY + 0.84, PZ, 12, 0.05, 0.72, STONE2);
+  for (const sx of [-1, 1]) b.box(sx * 5.6, PY, (PZ - 0.9) / 2, 0.7, 1.6, -PZ + 0.1, STONE);
+  b.box(0, PY, -0.95, 12, -PY - 0.9, 0.1, 0xb7a584);    // inner face of the tower wall below the window
   // tower body dropping to the water, our shore wall and its towers
-  b.box(0, WY - 2, -6, 12, -WY + 0.6, 4, STONE2);
+  b.box(0, WY - 2, PZ - 2.4, 12, (PY - 0.4) - (WY - 2), 4, STONE2);
   b.box(0, WY - 2, -8, 400, 9, 3, jitter(STONE2, 0.2, r));
   for (let x = -190; x <= 190; x += 38) if (Math.abs(x) > 10) {
     b.box(x, WY - 2, -8.5, 7, 13, 7, jitter(STONE, 0.3, r));
@@ -109,7 +110,7 @@ export function createConstantinople() {
   }
 
   // The great domed church on the first hill
-  const HX = -40, HZ = -300, HY = H(HX, HZ) - 2;
+  const HX = -45, HZ = -300, HY = H(HX, HZ) - 2;
   b.box(HX, HY, HZ, 76, 30, 70, PINK);
   b.box(HX - 46, HY, HZ, 16, 18, 74, jitter(PINK, 0.2, r));          // narthex
   b.box(HX + 42, HY, HZ, 10, 22, 30, jitter(PINK, 0.2, r));
@@ -164,10 +165,12 @@ export function createConstantinople() {
 
   // ---- Motion ----
   const ships = [];
-  const specs = [['galley', 0xa8322a, -48, 3.2], ['round', 0xefe6d2, -82, -2.2], ['round', 0xe8d6b0, -120, 1.6], ['galley', 0xf0e8d8, -150, -2.8], ['round', 0xb5443a, -36, -1.9], ['round', 0xeee2c8, -104, 2.5]];
+  const specs = [['galley', 0xa8322a, -48, 3.2], ['round', 0xefe6d2, -82, -2.2], ['round', 0xe8d6b0, -120, 1.6], ['galley', 0xf0e8d8, -150, -2.8],
+    ['round', 0xb5443a, -36, -1.9], ['round', 0xeee2c8, -104, 2.5], ['round', 0xf2ead8, -64, 1.4], ['galley', 0xc4473a, -134, -1.7]];
+  const SPAN = 130; // ships loop across this half-width, so several are always in view
   specs.forEach(([kind, sail, z, v], i) => {
     const m = shipMesh(kind, sail, i + 1);
-    m.position.set(r.range(-260, 260), WY + 0.2, z); if (v < 0) m.rotation.y = Math.PI;
+    m.position.set(-SPAN + (2 * SPAN) * (i + 0.5) / specs.length + r.range(-10, 10), WY + 0.2, z); if (v < 0) m.rotation.y = Math.PI;
     root.add(m); ships.push({ m, v, ph: r() * 6 });
   });
   const gulls = makeBirds({ count: 16, center: new THREE.Vector3(-6, WY + 16, -40), radius: 22, height: 4, size: 0.45, color: 0xf5f5f0, speed: 0.25, seed: 9 });
@@ -183,7 +186,7 @@ export function createConstantinople() {
   function update(t, dt) {
     for (const s of ships) {
       s.m.position.x += s.v * dt;
-      if (s.m.position.x > 340) s.m.position.x = -340; if (s.m.position.x < -340) s.m.position.x = 340;
+      if (s.m.position.x > SPAN) s.m.position.x = -SPAN; if (s.m.position.x < -SPAN) s.m.position.x = SPAN;
       s.m.position.y = WY + 0.2 + Math.sin(t * 1.1 + s.ph) * 0.25;
       s.m.rotation.x = Math.sin(t * 0.9 + s.ph) * 0.035;
     }

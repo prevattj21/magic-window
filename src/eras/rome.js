@@ -89,7 +89,7 @@ export function createRome() {
     b.add(G.gable, TERRA, M(x + side * 2.4, GY + 10.8, -58, 0, 6.4, 1.6, 96));
   }
   // equestrian statue in the plaza
-  b.box(-4, GY, -40, 3, 3.2, 5, MARBLE2);
+  b.box(-4, GY, -40, 3, 3.2, 5, MARBLE2); // statue base
   b.box(-4, GY + 3.2, -40, 1.1, 1.4, 3.2, 0x6d5a3a);
   b.box(-4, GY + 3.2, -41.3, 0.3, 1.4, 0.3, 0x6d5a3a); b.box(-4, GY + 4.4, -41.6, 0.6, 1.3, 0.8, 0x6d5a3a);
   b.box(-4, GY + 4.5, -39.9, 0.55, 1.2, 0.5, 0x6d5a3a); b.add(G.sphere, 0x6d5a3a, M(-4, GY + 5.9, -39.9, 0, 0.22, 0.25, 0.22));
@@ -100,7 +100,7 @@ export function createRome() {
   b.box(9, GY + 33, -66, 3.2, 1.2, 3.2, MARBLE2);
   b.add(G.boxB, 0x8a7348, M(9, GY + 34.2, -66, 0, 0.8, 2.6, 0.6)); b.add(G.sphere, 0x8a7348, M(9, GY + 37.1, -66, 0, 0.35, 0.4, 0.35));
   // triumphal arch
-  const AX = -6, AZ = -54;
+  const AX = -9, AZ = -62;
   b.box(AX - 4, GY, AZ, 3, 11, 4, 0xe9e0cc); b.box(AX + 4, GY, AZ, 3, 11, 4, 0xe9e0cc);
   b.box(AX, GY + 8, AZ, 11, 3.2, 4, 0xe9e0cc); b.box(AX, GY + 11.2, AZ, 11, 3.6, 4.2, MARBLE2);
   b.add(new THREE.CylinderGeometry(2.5, 2.5, 4.05, 16, 1, false, -Math.PI / 2, Math.PI).rotateX(Math.PI / 2), 0xe9e0cc, M(AX, GY + 8, AZ, 0, 1, 0.45, 1));

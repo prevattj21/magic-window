@@ -203,7 +203,17 @@ renderer.domElement.addEventListener('pointerup', e => {
   if (tap) previewTap(e.clientX, e.clientY);
 });
 renderer.domElement.addEventListener('wheel', e => { if (mode !== 'preview') return; const f = new THREE.Vector3(-Math.sin(look.yaw), 0, -Math.cos(look.yaw)); glide.target = clampRoom(camera.position.clone().addScaledVector(f, -e.deltaY * 0.004)); }, { passive: true });
-window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+window.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if (mode === 'preview' && /^[1-9]$/.test(e.key)) standBefore(portals[Number(e.key) - 1]);
+});
+// Step in front of a window (keys 1-9 in preview, or #rome / #byz / #ny in the address)
+function standBefore(p, dist = 1.5) {
+  if (!p) return;
+  const n = new THREE.Vector3(0, 0, 1).transformDirection(p.anchor.matrix);
+  const pos = new THREE.Vector3().setFromMatrixPosition(p.anchor.matrix).addScaledVector(n, dist);
+  glide.target = clampRoom(pos); look.yaw = Math.atan2(n.x, n.z); look.pitch = -0.02;
+}
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 function clampRoom(v) { v.x = THREE.MathUtils.clamp(v.x, -ROOM.x + 0.45, ROOM.x - 0.45); v.z = THREE.MathUtils.clamp(v.z, ROOM.zEnd + 0.45, ROOM.zBack - 0.45); v.y = 1.6; return v; }
 function previewTap(cx, cy) {
@@ -404,6 +414,8 @@ async function boot() {
   renderer.setAnimationLoop(render);
   $('#loading').classList.add('done');
   setHint('Drag to look · tap the floor to walk · tap a wall to hang a window');
+  const startAt = portals.find(p => '#' + p.era === location.hash);
+  if (startAt) { standBefore(startAt); camera.position.copy(glide.target); }
 
   let arOk = false; try { arOk = !!navigator.xr && await navigator.xr.isSessionSupported('immersive-ar'); } catch {}
   $('#btn-ar').classList.toggle('muted', !arOk);
