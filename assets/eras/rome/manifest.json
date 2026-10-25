@@ -46,11 +46,20 @@
    "license": "CC0 (polyhaven.com)"
   },
   "ground": {
-   "asset": "dry_ground_01",
-   "name": "Dry Ground 01",
+   "asset": "aerial_grass_rock",
+   "name": "Aerial Grass Rock",
    "files": {
-    "diff": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/dry_ground_01/dry_ground_01_diff_2k.jpg",
-    "rough": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/dry_ground_01/dry_ground_01_rough_2k.jpg"
+    "diff": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/aerial_grass_rock/aerial_grass_rock_diff_2k.jpg",
+    "rough": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/aerial_grass_rock/aerial_grass_rock_rough_2k.jpg"
+   },
+   "license": "CC0 (polyhaven.com)"
+  },
+  "cobble": {
+   "asset": "cobblestone_floor_01",
+   "name": "Cobblestone Floor 01",
+   "files": {
+    "diff": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/cobblestone_floor_01/cobblestone_floor_01_diff_2k.jpg",
+    "rough": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/cobblestone_floor_01/cobblestone_floor_01_rough_2k.jpg"
    },
    "license": "CC0 (polyhaven.com)"
   },
@@ -79,10 +88,10 @@
   50.0
  ],
  "res": [
-  1024,
-  716
+  3072,
+  2150
  ],
- "samples": 24,
+ "samples": 96,
  "layers": [
   {
    "name": "sky",
@@ -105,7 +114,7 @@
    "color": "mid.webp",
    "geo": "mid.bin",
    "gw": 448,
-   "gh": 313,
+   "gh": 314,
    "dtype": "f16"
   },
   {
@@ -131,5 +140,5 @@
    -102
   ]
  },
- "rendered": "2026-10-25 21:11 UTC"
+ "rendered": "2026-10-25 22:13 UTC"
 }
