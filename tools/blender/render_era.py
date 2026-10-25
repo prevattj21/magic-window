@@ -314,7 +314,10 @@ def build_dome():
     sub = nt.nodes.new('ShaderNodeVectorMath'); sub.operation = 'SUBTRACT'; sub.inputs[1].default_value = EYE
     nt.links.new(geo.outputs['Position'], sub.inputs[0])
     nrm = nt.nodes.new('ShaderNodeVectorMath'); nrm.operation = 'NORMALIZE'; nt.links.new(sub.outputs[0], nrm.inputs[0])
-    sk = sky_node(nt, True); nt.links.new(nrm.outputs[0], sk.inputs['Vector'])
+    sk = sky_node(nt, True)
+    # Nishita has no vector input; on an object it samples along the incoming ray,
+    # which from the eye at the dome's centre is exactly the view direction.
+    if 'Vector' in sk.inputs: nt.links.new(nrm.outputs[0], sk.inputs['Vector'])
     e1 = nt.nodes.new('ShaderNodeEmission'); nt.links.new(sk.outputs['Color'], e1.inputs['Color']); e1.inputs['Strength'].default_value = 0.32
     # soft cumulus: noise over the direction, only above the horizon
     n = nt.nodes.new('ShaderNodeTexNoise'); n.inputs['Scale'].default_value = 3.2; n.inputs['Detail'].default_value = 8; n.inputs['Roughness'].default_value = 0.6

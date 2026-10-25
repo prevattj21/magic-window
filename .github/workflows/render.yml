@@ -38,7 +38,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p ci-logs
-          ./$BLENDER/blender -b --factory-startup --python tools/blender/render_era.py -- \
+          ./$BLENDER/blender -b --factory-startup --python-exit-code 1 --python tools/blender/render_era.py -- \
             --era "$ERA" --out "assets/eras/$ERA" --res "$RES" --samples "$SAMPLES" 2>&1 | tee ci-logs/render.log
       - name: Commit layers and log
         if: always()
