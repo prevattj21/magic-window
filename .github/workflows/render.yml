@@ -46,15 +46,23 @@ jobs:
       - name: Commit layers and log
         if: always()
         run: |
-          mkdir -p ci-logs
-          { echo "run: ${{ github.run_id }}  era=$ERA res=$RES samples=$SAMPLES  status=${{ job.status }}"; tail -n 400 ci-logs/render.log 2>/dev/null; } > "ci-logs/render-$ERA.log"
-          rm -f ci-logs/render.log
+          # stash results outside the checkout, reset to the latest main, then copy back:
+          # nothing a concurrent push changed can conflict with this commit
+          mkdir -p /tmp/out ci-logs
+          { echo "run: ${{ github.run_id }}  era=$ERA res=$RES samples=$SAMPLES  status=${{ job.status }}"; tail -n 400 ci-logs/render.log 2>/dev/null; } > /tmp/out/render-$ERA.log
+          [ -f "assets/eras/$ERA/manifest.json" ] && cp -r "assets/eras/$ERA" /tmp/out/layers
           git config user.name "magic-window-render"
           git config user.email "render@users.noreply.github.com"
-          git add "ci-logs/render-$ERA.log"
-          [ -f "assets/eras/$ERA/manifest.json" ] && git add "assets/eras/$ERA"
-          git commit -m "Render $ERA layers (${RES}px, ${SAMPLES} spp) [run ${{ github.run_id }}]" || exit 0
-          git pull --rebase -q && git push -q
+          for attempt in 1 2 3; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            mkdir -p ci-logs && cp /tmp/out/render-$ERA.log ci-logs/
+            git add "ci-logs/render-$ERA.log"
+            if [ -d /tmp/out/layers ]; then rm -rf "assets/eras/$ERA"; mkdir -p assets/eras; cp -r /tmp/out/layers "assets/eras/$ERA"; git add -A "assets/eras/$ERA"; fi
+            git commit -q -m "Render $ERA layers (${RES}px, ${SAMPLES} spp) [run ${{ github.run_id }}]" || exit 0
+            git push -q origin HEAD:main && exit 0
+            sleep 5
+          done
+          exit 1
       - name: Redeploy the site
         # pushes made with the workflow token don't trigger other workflows, so start the deploy explicitly
         if: success()
