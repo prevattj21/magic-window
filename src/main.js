@@ -384,7 +384,8 @@ function setPortalClip(era, p, cam) {
   cam.getWorldPosition(_eye);
   _corners[0].set(-hw, -hh, 0).applyMatrix4(m); _corners[1].set(hw, -hh, 0).applyMatrix4(m);
   _corners[2].set(hw, hh, 0).applyMatrix4(m); _corners[3].set(-hw, hh, 0).applyMatrix4(m);
-  _ctr.set(0, 0, -1).applyMatrix4(m);                       // a point just behind the opening: always kept
+  // a point on the line from the eye through the window's centre, beyond the wall: always inside
+  _ctr.setFromMatrixPosition(m); _ctr.addScaledVector(tmpV.copy(_ctr).sub(_eye).normalize(), 1);
   const [wall, ...sides] = era.clipPlanes;
   wall.setFromNormalAndCoplanarPoint(tmpV.set(0, 0, -1).transformDirection(m), sphere.center.setFromMatrixPosition(m));
   sides.forEach((pl, i) => {
