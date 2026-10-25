@@ -1,6 +1,7 @@
 // Window openings, stencil masks, and the room-side frames for each era.
 import * as THREE from 'three';
 import { Builder, G, M, canvasTex } from './util.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const STYLES = {
   rome: { kind: 'arch', w: 1.0, h: 1.5, label: 'ROMA', date: '117 CE', accent: '#c9a45a' },
@@ -42,11 +43,19 @@ export function makeMask(style, ref) {
 // Depth-only wall with the window opening cut out. Rendered just before a portal's
 // scene so the scene can only be seen through the hole. Needs no stencil buffer.
 export function makeOccluder(style) {
-  const S = 2500, s = new THREE.Shape();
-  s.moveTo(-S, -S); s.lineTo(S, -S); s.lineTo(S, S); s.lineTo(-S, S); s.lineTo(-S, -S);
-  s.holes.push(openingShape(style));
-  const mat = new THREE.MeshBasicMaterial({ colorWrite: false, side: THREE.DoubleSide });
-  const m = new THREE.Mesh(new THREE.ShapeGeometry(s, 32).translate(0, 0, 0.003), mat); // just in front of the reveal
+  // A small square with the opening cut out, ringed by four huge quads that share its
+  // exact corners. One giant shape-with-hole triangulates into slivers that leave
+  // hairline cracks; this layout has none.
+  const I = 2, S = 2500, inner = new THREE.Shape();
+  inner.moveTo(-I, -I); inner.lineTo(I, -I); inner.lineTo(I, I); inner.lineTo(-I, I); inner.lineTo(-I, -I);
+  inner.holes.push(openingShape(style));
+  const quad = (x0, y0, x1, y1) => new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(x0, y0, 0), new THREE.Vector3(x1, y0, 0), new THREE.Vector3(x1, y1, 0),
+    new THREE.Vector3(x0, y0, 0), new THREE.Vector3(x1, y1, 0), new THREE.Vector3(x0, y1, 0)]);
+  const parts = [new THREE.ShapeGeometry(inner, 32).toNonIndexed(), quad(-S, I, S, S), quad(-S, -S, S, -I), quad(-S, -I, -I, I), quad(I, -I, S, I)];
+  for (const g of parts) for (const k of Object.keys(g.attributes)) if (k !== 'position') g.deleteAttribute(k);
+  const geo = mergeGeometries(parts).translate(0, 0, 0.003); // just in front of the reveal
+  const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false, side: THREE.DoubleSide }));
   m.frustumCulled = false;
   return m;
 }
